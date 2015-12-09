@@ -1,48 +1,61 @@
-const int row1Pin = 1;
-const int row2Pin = 2;
-const int row3Pin = 3;
-const int row4Pin = 4;
+/**
+ * Allow for customization of any pins, resistors, or tolerance.
+ * FYI - These are the count ranges given all defaults below:
+ *  926 < col1 < 933
+ *  835 < col2 < 842
+ *  693 < col3 < 698
+ *  606 < col4 < 611
+ */
 
-const float voltage = 5.0; // 3.3
+#ifndef ROW1PIN
+#define ROW1PIN 1
+#endif
 
-const float col1 = 186; // 190
-const float col2 = 168; // 172
-const float col3 = 140;
-const float col4 = 122;
-const float tolerance = 0.02;
+#ifndef ROW2PIN
+#define ROW2PIN 2
+#endif
 
-void setup()
-{
-    pinMode(row1Pin, INPUT);
-    pinMode(row2Pin, INPUT);
-    pinMode(row3Pin, INPUT);
-    pinMode(row4Pin, INPUT);
+#ifndef ROW3PIN
+#define ROW3PIN 3
+#endif
 
-    Serial.begin(9600);
+#ifndef ROW4PIN
+#define ROW4PIN 4
+#endif
 
-    /*
-    Serial.print(col1 - (col1 * tolerance));
-    Serial.print("< col1 <");
-    Serial.print(col1 + (col1 * tolerance));
-    Serial.println();
+#ifndef R1
+#define R1 10000
+#endif
 
-    Serial.print(col2 - (col2 * tolerance));
-    Serial.print("< col2 <");
-    Serial.print(col2 + (col2 * tolerance));
-    Serial.println();
+#ifndef R2
+#define R2 22000
+#endif
 
-    Serial.print(col3 - (col3 * tolerance));
-    Serial.print("< col3 <");
-    Serial.print(col3 + (col3 * tolerance));
-    Serial.println();
+#ifndef R3
+#define R3 47000
+#endif
 
-    Serial.print(col4 - (col4 * tolerance));
-    Serial.print("< col4 <");
-    Serial.print(col4 + (col4 * tolerance));
-    Serial.println();
-    */
-}
+#ifndef R4
+#define R4 68000
+#endif
 
+#ifndef RCOMM
+#define RCOMM 100000
+#endif
+
+/* For the default resistor values, this is a pretty good default. */
+#ifndef TOLERANCE
+#define TOLERANCE 0.004
+#endif
+
+#define ANALOG_COUNTS(r) (1024 * RCOMM / (RCOMM + r))
+#define PRINT_RANGE(col)({Serial.print(col - (col * TOLERANCE)); Serial.print(" < " #col " < "); Serial.print(col + (col * TOLERANCE)); Serial.println();})
+#define GET_RANGE(col,reading) ((col - (col * TOLERANCE)) < reading && reading < (col + (col * TOLERANCE)))
+
+const float col1 = ANALOG_COUNTS(R1);
+const float col2 = ANALOG_COUNTS(R2);
+const float col3 = ANALOG_COUNTS(R3);
+const float col4 = ANALOG_COUNTS(R4);
 int rows[4];
 int col;
 
@@ -53,12 +66,27 @@ char buttons[4][4] = {
     {'*', '0', '#', 'D'},
 };
 
+void setup()
+{
+    pinMode(ROW1PIN, INPUT);
+    pinMode(ROW2PIN, INPUT);
+    pinMode(ROW3PIN, INPUT);
+    pinMode(ROW4PIN, INPUT);
+
+    Serial.begin(9600);
+
+    PRINT_RANGE(col1);
+    PRINT_RANGE(col2);
+    PRINT_RANGE(col3);
+    PRINT_RANGE(col4);
+}
+
 void loop()
 {
-    rows[0] = analogRead(row1Pin);
-    rows[1] = analogRead(row2Pin);
-    rows[2] = analogRead(row3Pin);
-    rows[3] = analogRead(row4Pin);
+    rows[0] = analogRead(ROW1PIN);
+    rows[1] = analogRead(ROW2PIN);
+    rows[2] = analogRead(ROW3PIN);
+    rows[3] = analogRead(ROW4PIN);
 
     for (int i = 0; i<4; i++) {
         col = getCol(rows[i]);
@@ -71,17 +99,16 @@ void loop()
 }
 
 int getCol(int reading) {
-    float scaled = reading / voltage;
-    if ((col1 - (col1 * tolerance)) < scaled && scaled < (col1 + (col1 * tolerance))) {
+    if (GET_RANGE(col1, reading)) {
         return 0;
     }
-    if ((col2 - (col2 * tolerance)) < scaled && scaled < (col2 + (col2 * tolerance))) {
+    if (GET_RANGE(col2, reading)) {
         return 1;
     }
-    if ((col3 - (col3 * tolerance)) < scaled && scaled < (col3 + (col3 * tolerance))) {
+    if (GET_RANGE(col3, reading)) {
         return 2;
     }
-    if ((col4 - (col4 * tolerance)) < scaled && scaled < (col4 + (col4 * tolerance))) {
+    if (GET_RANGE(col4, reading)) {
         return 3;
     }
     return -1;
